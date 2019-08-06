@@ -9,7 +9,9 @@ import json
 from View.server_gui import *
 
 userDict = {'A': 0, 'B': 0}  # to store connected users
-connDict = {}
+aList = []  # to store messages for client A
+bList = []  # to store messages for client B
+connDict = {}  # to store connection objects
 
 # To start the server
 class Server:
@@ -35,7 +37,7 @@ class Connections(threading.Thread):
         threading.Thread.__init__(self)
         self.conn = conn
         self.interface = interface
-        self.headerLines = {'Server': str(self.conn.getsockname()), 'Status': 'True'}
+        self.headerLines = {'Server': str(self.conn.getsockname()), 'Status': 'True'}  # basic response dictionary
         self.start()  # threads gets started
 
     def run(self) -> None:
@@ -52,7 +54,7 @@ class Connections(threading.Thread):
                             self.conn = connDict['A']
                         del self.headerLines['user']
                     try:
-                        print(self.conn)
+                        # print(self.conn)
                         self.conn.sendall(json.dumps(self.headerLines).encode('utf-8'))  # send data to the client
                     except Exception as e:
                         print(e.args[1])
@@ -66,8 +68,8 @@ class Connections(threading.Thread):
     # Function to parse the incoming message
     def parseData(self, data):
         parsedData = json.loads(data.decode('utf-8'))
-        self.interface.addToTextBox(parsedData)  # Display incoming message
-        if parsedData['Message-Type'] == 'send-username':
+        # self.interface.addToTextBox(parsedData)  # Display incoming message
+        if parsedData['Message-Type'] == 'send-username':  # handle user connection
 
             self.headerLines['Message-Type'] = 'respond-username'
 
@@ -78,17 +80,31 @@ class Connections(threading.Thread):
                 connDict[parsedData['User-Agent']] = self.conn
                 self.interface.addToTextBox('Connected User: ' + parsedData['User-Agent'] + '\n')
 
-        elif parsedData['Message-Type'] == 'send-data':
+        elif parsedData['Message-Type'] == 'send-data':  # handle modified data sent by the client
 
+            self.interface.addToTextBox('File modified by client: ' + parsedData['User-Agent'] + ' with below data:' +
+                                        '\n' + parsedData['data'])
             self.headerLines['Message-Type'] = 'invalidation-notice'
-            self.headerLines['data'] = parsedData['data']
+            # self.headerLines['data'] = parsedData['data']
 
             if parsedData['User-Agent'] == 'A':
                 self.headerLines['user'] = 'B'
+                bList.append(parsedData['data'])
             else:
                 self.headerLines['user'] = 'A'
+                aList.append(parsedData['data'])
 
-        elif parsedData['Message-Type'] == 'respond-invalidation':
+        elif parsedData['Message-Type'] == 'request-modified-data':  # handle request for modified data
+
+            self.headerLines['Message-Type'] = 'send-modified-data'
+            if parsedData['User-Agent'] == 'A':
+                self.headerLines['data'] = aList.pop(0)
+                aList.clear()
+            else:
+                self.headerLines['data'] = bList.pop(0)
+                bList.clear()
+
+        elif parsedData['Message-Type'] == 'respond-invalidation':  # handle rejection of modified data
 
             self.headerLines['Message-Type'] = 'respond-send-data'
 
@@ -97,7 +113,7 @@ class Connections(threading.Thread):
             else:
                 self.headerLines['user'] = 'A'
 
-        elif parsedData['Message-Type'] == 'user-disconnected':
+        elif parsedData['Message-Type'] == 'user-disconnected':  # handle user disconnection
 
             self.headerLines['Status'] = 'False'
             self.headerLines['Message-Type'] = 'disconnect'

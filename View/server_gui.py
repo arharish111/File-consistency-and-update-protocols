@@ -18,7 +18,7 @@ class serverUI(threading.Thread):
         self.window = Tk()
         self.window.title('Server')
 
-        self.textBox = Text(self.window, width=50, height=30)
+        self.textBox = Text(self.window, width=50, height=30)  # text box to display messages
         self.textBox.pack()
 
         ttk.Button(self.window, text='Close', command=self.closeWindow).pack()

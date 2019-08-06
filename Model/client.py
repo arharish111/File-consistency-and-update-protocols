@@ -37,10 +37,14 @@ class Client(threading.Thread):
                                 }
             self.sendUserName()
 
+# To send user name to the server
+
     def sendUserName(self):
 
         handleInvalidationNotice(self)
         self.sendMessageToServer()
+
+# To send messages to the server
 
     def sendMessageToServer(self):
 
@@ -52,6 +56,8 @@ class Client(threading.Thread):
         except Exception as e:
             print(e.args[1])
 
+# Parse incoming message and call function based on message type
+
     def parseIncomingMessageFromServer(self, data):
 
         self.parsedData = json.loads(data.decode('utf-8'))
@@ -61,16 +67,13 @@ class Client(threading.Thread):
             self.handleRespondUserName()
         elif self.parsedData['Message-Type'] == 'respond-send-data':
             self.handleRespondSendData()
+        elif self.parsedData['Message-Type'] == 'send-modified-data':
+            self.handleSendModifiedData()
 
-    def handleRespondUserName(self):
-        if self.parsedData['Status'] == 'True':
-            self.userUI = clientInterface(self.userName, self)
-            fileHandling(self)
-        else:
-            self.soc.close()
-            self.mainUI.displayMessageBox()
+# To handle modified file
 
-    def handleInvalidationNotice(self):
+    def handleSendModifiedData(self):
+
         message = 'Would you like accept below data' + '\n' + self.parsedData['data']
         self.headerLines['Message-Type'] = 'respond-invalidation'
         if self.userName == 'A':
@@ -94,6 +97,25 @@ class Client(threading.Thread):
         if self.headerLines['Status'] == 'False':
             self.sendMessageToServer()
 
+# To handle user acceptation or rejection by the server
+
+    def handleRespondUserName(self):
+        if self.parsedData['Status'] == 'True':
+            self.userUI = clientInterface(self.userName, self)
+            fileHandling(self)
+        else:
+            self.soc.close()
+            self.mainUI.displayMessageBox()
+
+# To handle invalidation notice sent by the server
+
+    def handleInvalidationNotice(self):
+
+        self.headerLines['Message-Type'] = 'request-modified-data'
+        self.sendMessageToServer()
+
+# To handle rejection of modified data
+
     def handleRespondSendData(self):
 
         if self.userName == 'A':
@@ -109,10 +131,14 @@ class Client(threading.Thread):
             fp.close()
             messagebox.showinfo('Rejection', 'Client A has rejected the update. Reverted local changes')
 
+# To handle disconnection of client
+
     def sendDisconnection(self):
 
         self.headerLines['Message-Type'] = 'user-disconnected'
         self.sendMessageToServer()
+
+# Class to handle file modifications
 
 class fileHandling(threading.Thread):
 
@@ -149,6 +175,8 @@ class fileHandling(threading.Thread):
                 fp.close()
                 time.sleep(5)
 
+# class to handle response from the server
+
 class handleInvalidationNotice(threading.Thread):
 
     def __init__(self, soc):
@@ -164,5 +192,4 @@ class handleInvalidationNotice(threading.Thread):
                 break
             else:
                 if invalidData:
-                    print(invalidData)
                     self.serverConnection.parseIncomingMessageFromServer(invalidData)

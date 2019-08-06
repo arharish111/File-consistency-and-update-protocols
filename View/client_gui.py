@@ -8,8 +8,12 @@ from tkinter import ttk
 import threading
 import socket
 from Model.client import *
-initial = ''
-previous = ''
+
+initial = ''  # variable to store contents of file
+previous = ''  # variable to store contents of file
+
+
+# Class for client GUI
 
 class clientInterface(threading.Thread):
 
@@ -20,7 +24,6 @@ class clientInterface(threading.Thread):
         self.start()
 
     def run(self) -> None:
-
         self.window = Tk()
         self.window.title(self.userName)
 
@@ -38,11 +41,15 @@ class clientInterface(threading.Thread):
         self.connection.sendDisconnection()
         self.window.destroy()
 
+
+# Class for select user GUI
+
 class selectUserUI(threading.Thread):
 
     def __init__(self):
         threading.Thread.__init__(self)
         self.start()
+
     def run(self) -> None:
         self.master = Tk()
         self.userOptionLabel = ttk.Label(self.master, text='Select User')
@@ -66,8 +73,10 @@ class selectUserUI(threading.Thread):
     def displayMessageBox(self):
         messagebox.showerror(title='Error', message='This user name is taken.Please select another user')
 
+
 def selectUserCallBack(userName, master):
-     Client(userName, master)
+    Client(userName, master)
+
 
 def main():
     fp = open('A.txt', 'r')
@@ -76,7 +85,9 @@ def main():
     fp.close()
     selectUserUI()
 
+
 def endClientPrcess():
     exit(0)
+
 
 if __name__ == '__main__': main()
